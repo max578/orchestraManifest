@@ -3,6 +3,11 @@
 * Additive inferential-target token `consensus` (emitted by quorum, the
   consensus layer); the workspace reference carries the same token.
 
+* The manifest-and-refusal-contract vignette is brought to the orchestra
+  vignette quality bar: a why/what/do/read/limits shape, an
+  inferential-target-to-emitter table, and a ggplot2 diagram of the
+  emit-verify-consume flow.
+
 # orchestraManifest 0.1.0
 
 ## New features

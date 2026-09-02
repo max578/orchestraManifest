@@ -7,12 +7,34 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<!-- Render time: ~1 s under rmarkdown::render(); macOS arm64, R 4.5.2, one
+     core. No sampler runs in this vignette, so the time is dominated by
+     knitr overhead and the one small proxymix fit. -->
+
 ```{r setup, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  dpi = 150
+)
+```
+
+```{r library}
 library(orchestraManifest)
 ```
 
-## Why a typed result at all
+## Why
+
+A package author who has just built a new estimator and wants its result
+readable by every other member of the orchestra asks a narrow, practical
+question: *if I hand my result to another package as an*
+`orchestra_manifest`*, what exactly am I promising it, and how does it find
+out the moment I break that promise?* This vignette answers both halves --
+what the promise is, and what happens when it is broken, through a
+corrupted payload, an unrecognised schema version, or a derived result that
+has lost track of what it was derived from.
 
 A collection of analytics components becomes a framework only when one
 component's output is another's input by construction. The alternative is
@@ -20,6 +42,8 @@ what most multi-package stacks actually do -- each component returns its own
 list or data frame, and every pairing needs a bespoke adapter written by
 whoever wired it, checked by nobody, and silently wrong the day either side
 changes shape.
+
+## What
 
 The manifest is the single result type that removes those adapters. An
 emitter fills it in once and every consumer reads the same properties in the
@@ -31,8 +55,6 @@ refuse anything else. It is **hashed**, so a consumer can tell whether the
 payload it is holding is the payload the emitter sealed. And it is
 **provenance-tracked**, so an approximation cannot quietly lose the identity
 of the thing it approximated.
-
-## The class
 
 ```{r class}
 params <- data.frame(a = c(0.12, 0.15), b = c(1.51, 1.44))
@@ -61,11 +83,99 @@ can dispatch on before it inspects any payload.
 inferential_targets()
 ```
 
+Every current member of the orchestra that emits a manifest declares one of
+these eight labels, read from that member's own manifest source rather than
+re-derived here.
+
+```{r targets-table, echo = FALSE}
+token_emitters <- data.frame(
+  token = inferential_targets(),
+  emitting_member = c(
+    "PESTO, proxymix, optimix, apsimR",
+    "gpfield, apsimR",
+    "kernR",
+    "decideR",
+    "flexyBayes",
+    "flexyBayes",
+    "cdzoo",
+    "quorum"
+  ),
+  stringsAsFactors = FALSE
+)
+knitr::kable(
+  token_emitters, col.names = c("Inferential target", "Emitting member(s)"),
+  caption = paste0(
+    "The closed target vocabulary and which orchestra member emits each, ",
+    "current at the time of writing."
+  )
+)
+```
+
 Payload carries the load-bearing content -- `params`, `outputs`, `weights`,
 `obs_target`, `summary` and `seed` -- and is exactly the set the hash covers.
 Provenance records what the result was derived from.
 
-## Emit, verify, consume
+The diagram below draws the promise as a flow, from an emitter building the
+payload through to a consumer either receiving a typed manifest or being
+refused.
+
+```{r flow-diagram, echo = requireNamespace("ggplot2", quietly = TRUE), eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "The emit-verify-consume flow. An emitter builds the hashed, versioned, provenance-tracked manifest; verify_manifest() recomputes the payload hash; consume_manifest() adds the version gate and either hands the consumer a typed manifest or refuses -- on a version it does not accept, or a payload whose hash no longer matches."}
+nodes <- data.frame(
+  label = c("Emitter\nbuilds payload + hash",
+           "orchestra_manifest()\nversioned, hashed,\nprovenance-tracked",
+           "verify_manifest()\nrecomputes\nthe hash",
+           "consume_manifest()\nversion gate\n+ verify",
+           "Consumer\nreads the\ntyped payload",
+           "Refusal\nwrong version or\nmismatched hash"),
+  x = c(1L, 3L, 5L, 7L, 9L, 9L),
+  y = c(1, 1, 1, 1, 1.7, 0.3),
+  kind = c("build", "object", "check", "check", "accept", "refuse"),
+  stringsAsFactors = FALSE
+)
+edges <- data.frame(
+  x = c(1.85, 3.85, 5.85, 7.75, 7.75),
+  y = c(1, 1, 1, 1.2, 0.8),
+  xend = c(2.15, 4.15, 6.15, 8.25, 8.25),
+  yend = c(1, 1, 1, 1.6, 0.4),
+  path = c("flow", "flow", "flow", "accept", "refuse"),
+  stringsAsFactors = FALSE
+)
+
+ggplot2::ggplot() +
+  ggplot2::geom_rect(
+    data = nodes,
+    ggplot2::aes(xmin = x - 0.9, xmax = x + 0.9, ymin = y - 0.38,
+                ymax = y + 0.38, fill = kind)
+  ) +
+  ggplot2::geom_text(
+    data = nodes, ggplot2::aes(x = x, y = y, label = label),
+    size = 2.9, lineheight = 0.9
+  ) +
+  ggplot2::geom_segment(
+    data = edges,
+    ggplot2::aes(x = x, y = y, xend = xend, yend = yend, linetype = path),
+    arrow = ggplot2::arrow(length = ggplot2::unit(0.15, "cm"),
+                           type = "closed"),
+    colour = "grey30"
+  ) +
+  ggplot2::scale_fill_viridis_d(name = "stage", guide = "none") +
+  ggplot2::scale_linetype_manual(
+    values = c(flow = "solid", accept = "solid", refuse = "dashed"),
+    guide = "none"
+  ) +
+  ggplot2::coord_cartesian(xlim = c(0, 10.3), ylim = c(-0.2, 2.3)) +
+  ggplot2::theme_void() +
+  ggplot2::labs(title = "The manifest contract: emit, verify, consume")
+```
+
+```{r flow-diagram-skip, echo = FALSE, eval = !requireNamespace("ggplot2", quietly = TRUE), results = "asis"}
+cat("ggplot2 is not installed; the emit-verify-consume diagram is",
+    "skipped.\n")
+```
+
+## Do
+
+### Emit, verify, consume
 
 The hash is taken over the payload only. Schema version, emitter identity and
 timestamp are metadata, so re-tagging a manifest leaves an unchanged payload
@@ -75,7 +185,8 @@ verifying, while any edit to the payload is caught.
 verify_manifest(m)$ok
 
 m@emitter_package <- "relabelled"
-verify_manifest(m)$ok
+verify_after_relabel <- verify_manifest(m)$ok
+verify_after_relabel
 ```
 
 Tampering with the payload is a different matter.
@@ -84,7 +195,8 @@ Tampering with the payload is a different matter.
 tampered <- m
 tampered@params$a[1] <- 0.99
 
-verify_manifest(tampered)
+verify_tamper <- verify_manifest(tampered)
+verify_tamper
 ```
 
 `verify_manifest()` returns its verdict as data because a consumer often wants
@@ -94,7 +206,8 @@ three checks -- is this a manifest, is its schema one I accept, does its
 payload still verify -- and errors on any of them.
 
 ```{r consume, error = TRUE}
-consume_manifest(m)@run_id
+run_id_consumed <- consume_manifest(m)@run_id
+run_id_consumed
 
 consume_manifest(tampered)
 ```
@@ -108,14 +221,15 @@ downstream as a wrong number rather than as an error.
 consume_manifest(m, accept = "1.0.0")
 ```
 
-## Provenance is not optional for a derived result
+### Provenance is not optional for a derived result
 
 A manifest that approximates another one records a compact handle to it. The
 handle carries the upstream `data_hash`, not just its `run_id`, so a later
 re-emission that changed the numbers cannot be passed off as the same input.
 
 ```{r lineage}
-manifest_lineage(m)
+lin_m <- manifest_lineage(m)
+lin_m
 ```
 
 Setting `metadata$derived` to `TRUE` turns the lineage from a convention into
@@ -135,7 +249,7 @@ orchestra_manifest(
 )
 ```
 
-## A verdict is not an ensemble
+### A verdict is not an ensemble
 
 A causal test or a decision produces one labelled conclusion, not a matrix of
 draws. Forcing it into `params` as a single-row table leaves a consumer unable
@@ -155,7 +269,7 @@ verdict$abstained
 verdict$abstain_reason
 ```
 
-## Refusals and abstentions
+### Refusals and abstentions
 
 An abstention is a result, not a failure. A component that will not stand
 behind a number should say so in a way a gate can recognise, and the problem
@@ -178,15 +292,18 @@ s7_refusal <- structure(list(),
                         class = c("example::example_refusal", "S7_object"))
 abstention <- structure(list(), class = "example_abstention")
 
-c(is_orchestra_refusal(s3_refusal), is_orchestra_refusal(s7_refusal))
+refusal_flags <- c(is_orchestra_refusal(s3_refusal),
+                   is_orchestra_refusal(s7_refusal))
+refusal_flags
 ```
 
 Gate logic almost always wants the wider union, because a refusal and an
 abstention mean the same thing to a gate.
 
 ```{r decline}
-vapply(list(s3_refusal, s7_refusal, abstention, 42),
-       is_orchestra_decline, logical(1))
+decline_flags <- vapply(list(s3_refusal, s7_refusal, abstention, 42),
+                        is_orchestra_decline, logical(1))
+decline_flags
 ```
 
 Seam-side code that mints a refusal of its own has no component name to follow
@@ -195,40 +312,45 @@ idempotent, and a refusal can therefore pass through several layers without
 accumulating duplicate classes.
 
 ```{r marker}
-r <- as_orchestra_refusal(structure(list(why = "capital firewall"),
-                                    class = "list"))
-class(r)
-identical(as_orchestra_refusal(r), r)
+refusal_marker <- as_orchestra_refusal(structure(list(why = "capital firewall"),
+                                                 class = "list"))
+class(refusal_marker)
+identical(as_orchestra_refusal(refusal_marker), refusal_marker)
 ```
 
-## Grounding tokens
+### Grounding tokens
 
 The grounding vocabulary is orthogonal to the refusal contract: a token says
 how well a fact is evidenced, a refusal says what happened to the control
 flow. A fact is grounded only when its verification date is present.
 
 ```{r tokens}
-grounding_token(as.Date(c("2026-07-05", "2026-07-06")))
-grounding_token(as.Date(c("2026-07-05", NA)))
-grounding_token(as.Date(character(0)))
+g_full <- grounding_token(as.Date(c("2026-07-05", "2026-07-06")))
+g_partial <- grounding_token(as.Date(c("2026-07-05", NA)))
+g_empty <- grounding_token(as.Date(character(0)))
+g_full
+g_partial
+g_empty
 ```
 
 The asymmetry is the point. An empty evidence set is not neutral, it is the
 absence of evidence, and a partially checked set is not partially trustworthy
 because the consumer cannot tell which element it may lean on. Both collapse
-to `[unverified]` so a downstream gate errs towards abstention. Combining
+to `` `[unverified]` `` so a downstream gate errs towards abstention. Combining
 tokens follows the same rule, worst-case across the inputs.
 
 ```{r combine}
-combine_grounding(c(GROUNDING_GROUNDED, GROUNDING_GROUNDED))
-combine_grounding(c(GROUNDING_GROUNDED, GROUNDING_UNVERIFIED))
+c_both_grounded <- combine_grounding(c(GROUNDING_GROUNDED, GROUNDING_GROUNDED))
+c_mixed <- combine_grounding(c(GROUNDING_GROUNDED, GROUNDING_UNVERIFIED))
+c_both_grounded
+c_mixed
 ```
 
 Any other rule -- a majority, a mean, an optimistic "at least one" -- would
 let a verdict inherit confidence from its checked inputs while quietly resting
 on an unchecked one.
 
-## Comparing two manifests honestly
+### Comparing two manifests on meaning, not position
 
 A purely structural conformance check cannot catch a wrong-but-agreed
 convention. Two components that both label a column `o1` will compare happily
@@ -266,7 +388,7 @@ The check is opt-in by presence: when either manifest lacks an `obs_schema` it
 is a graceful no-op, so the guard activates once both emitters populate the
 field and no existing pipeline breaks on the day it lands.
 
-## Adapting a component
+### Adapting a component
 
 A component joins the contract by being adapted, not by being rewritten. It
 keeps its own result type and a method on `as_orchestra_manifest()` lifts that
@@ -274,7 +396,7 @@ type into a manifest. Two adapters ship here, for a `PESTO` ensemble manifest
 and a `proxymix` mixture fit, and each is registered at load time only when
 its component is installed.
 
-```{r adapter, eval = requireNamespace("proxymix", quietly = TRUE)}
+```{r adapter, echo = requireNamespace("proxymix", quietly = TRUE), eval = requireNamespace("proxymix", quietly = TRUE)}
 set.seed(1)
 draws <- matrix(stats::rnorm(200), 100, 2, dimnames = list(NULL, c("a", "b")))
 fit <- proxymix::fit_proxymix(proxymix::gmm_target_from_samples(draws),
@@ -288,7 +410,12 @@ proxy@consumed_manifests[[1]]$run_id
 verify_manifest(proxy)$ok
 ```
 
-## Two class identities, one contract
+```{r adapter-skip, echo = FALSE, eval = !requireNamespace("proxymix", quietly = TRUE), results = "asis"}
+cat("proxymix is not installed on this build, so the adapter",
+    "demonstration is not run here.\n")
+```
+
+### Two class identities, one contract
 
 The contract was a script sourced into a coordination workspace before it was
 a package. A manifest minted by that reference carries the bare class name,
@@ -303,9 +430,128 @@ is_orchestra_manifest(m)
 
 They are the same contract, so identity is tested on the class name -- the
 part the contract actually fixes -- rather than with a strict class check that
-would reject every manifest emitted anywhere else. The package's test suite
-includes a cross-implementation oracle for exactly this: it builds a manifest
-under the reference implementation in a separate R session, hashes the same
-payload under both implementations, and requires the two strings to be
-identical. An extraction that quietly changed the digest would pass every
-self-consistent test in the suite and fail that one.
+would reject every manifest emitted anywhere else.
+
+```{r read-prep, echo = FALSE}
+consume_tamper_msg <- tryCatch(consume_manifest(tampered),
+                               error = function(e) conditionMessage(e))
+version_refusal_msg <- tryCatch(consume_manifest(m, accept = "1.0.0"),
+                                error = function(e) conditionMessage(e))
+derived_refusal_msg <- tryCatch(orchestra_manifest(
+  emitter_package    = "proxy",
+  emitter_version    = "0.1.0",
+  inferential_target = "parameters",
+  run_id             = "proxy-001",
+  method             = "proxy:demo",
+  metadata           = list(derived = TRUE),
+  timestamp          = Sys.time(),
+  data_hash          = manifest_data_hash(data.frame(), NULL, NULL, NULL,
+                                          NA_integer_)
+), error = function(e) conditionMessage(e))
+read_n_targets <- length(inferential_targets())
+has_proxymix <- requireNamespace("proxymix", quietly = TRUE)
+```
+
+## Read
+
+The opening question was what a manifest promises and how a broken promise is
+caught. `inferential_targets()` names `r read_n_targets` closed labels --
+including `consensus`, the label this release adds -- so a consumer can
+decide whether it understands a manifest before it inspects any payload. The
+identity properties (`emitter_package`, `manifest_version`) sit outside that
+promise: relabelling `m@emitter_package` after the manifest was built leaves
+`verify_manifest(m)$ok` at `r verify_after_relabel`, because metadata moved
+and the payload did not. Editing `params$a[1]` by one hundredth instead flips
+it to `r verify_tamper$ok`, reported as `r verify_tamper$message`.
+
+`consume_manifest()` layers the version gate on top of that same check.
+Calling it on the tampered manifest refuses with `r consume_tamper_msg`;
+asking it to accept a version this build does not emit refuses with
+`r version_refusal_msg`. Both are errors a caller cannot silently step past,
+which is the point -- a manifest either verifies under an accepted schema or
+the pipeline stops there, loudly, rather than three functions later on a
+wrong number nobody can trace back to its source. The provenance rule refuses
+the same way at construction: a manifest declaring `metadata$derived = TRUE`
+with no `consumed_manifests` refuses with `r derived_refusal_msg`, so an
+approximation cannot be minted without a traceable handle to what it
+approximated.
+
+The refusal and abstention predicates close the same gap from the producer's
+side. `is_orchestra_refusal()` recognises the S3 and the S7 refusal alike
+(`r paste(refusal_flags, collapse = ", ")`), and the wider
+`is_orchestra_decline()` recognises all three declines but not the bare
+integer sitting among them (`r paste(decline_flags, collapse = ", ")`) -- a
+gate written against the union cannot be fooled by which object system
+produced the decline. Grounding tokens collapse the same direction: a
+partially dated evidence set and an empty one both read `r g_partial` and
+`r g_empty`, and combining a grounded token with an unverified one keeps the
+pair at `r c_mixed` -- the worst case of the two, never an average. The
+verdict built above carries its own reason rather than a bare flag:
+`abstained` is `TRUE` because `r verdict$abstain_reason`.
+
+```{r read-text, echo = FALSE, results = "asis"}
+if (has_proxymix) {
+  cat(
+    "The proxymix adapter carries the same promise across a package",
+    "boundary: compressing the class chunk's manifest through",
+    "`fit_proxymix()` and `manifest_from_gmm()` returns an",
+    "`orchestra_manifest` whose `emitter_package` reads",
+    paste0("\"", proxy@emitter_package, "\", whose `metadata$derived` is"),
+    paste0(proxy@metadata$derived, ", whose"),
+    "`consumed_manifests[[1]]$run_id` still names",
+    paste0("\"", proxy@consumed_manifests[[1]]$run_id,
+           "\", the manifest it compressed, and whose own hash verifies"),
+    paste0("(", verify_manifest(proxy)$ok, ").\n")
+  )
+} else {
+  cat(
+    "proxymix is not installed on this build, so the adapter",
+    "demonstration above did not run and its claims are unexercised",
+    "here.\n"
+  )
+}
+```
+
+## Limits
+
+The token-to-emitter table above is read from each member's own manifest
+source at the time of writing -- the `inferential_target = "..."` literal in
+its own `R/manifest.R` or equivalent, cross-checked against the constellation
+roster -- not exercised by a call into that package from here. A member that
+changed its target without a compatible version bump would leave the table
+stale until this vignette is refreshed. Only two adapters are demonstrated
+end to end, for PESTO and proxymix, because those are the two this package
+ships; the other six members named in the table implement the contract
+independently inside their own packages, each with its own worked example,
+and are not re-run here.
+
+Every manifest built in this vignette carries a two-parameter toy payload or
+a hundred-draw mixture fit, small enough to keep the render fast rather than
+to represent a production-scale ensemble or a spatial field. The
+cross-implementation oracle that actually grounds the claim that "the same
+contract" means bit-identical rather than merely similarly shaped -- building
+a manifest under this package and under the reference implementation in
+separate R sessions and requiring the two digests to match -- lives in the
+package's test suite, not in this vignette.
+
+## What to read next
+
+*The Ensemble-Run Manifest: a Portable, Verifiable Record* walks PESTO's own
+emission of the manifest this vignette wraps, from the calibration-ensemble
+side. *Compressing a Bayesian posterior you can evaluate but not sample* is
+proxymix's account of the same adapter from its side, including the
+compression this vignette only calls once. *A quorum of lenses on Study A0*
+and *Adding a lens* are quorum's two vignettes, the newest emitter of the
+`consensus` target this release adds. *A benchmark harness and recommender
+for causal discovery* is cdzoo's account of the `structure` target.
+
+## Reproduce
+
+Every result in this vignette is a deterministic function of the toy payload
+built in the class chunk above, except the proxymix adapter demonstration,
+which draws its hundred-observation mixture sample under `set.seed(1)`.
+Package versions follow.
+
+```{r session-info}
+sessionInfo()
+```

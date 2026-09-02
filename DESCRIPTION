@@ -35,6 +35,7 @@ Imports:
     S7,
     utils
 Suggests:
+    ggplot2,
     knitr,
     openssl,
     PESTO,
