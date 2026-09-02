@@ -1,0 +1,311 @@
+---
+title: "The manifest and refusal contract"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The manifest and refusal contract}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(orchestraManifest)
+```
+
+## Why a typed result at all
+
+A collection of analytics components becomes a framework only when one
+component's output is another's input by construction. The alternative is
+what most multi-package stacks actually do -- each component returns its own
+list or data frame, and every pairing needs a bespoke adapter written by
+whoever wired it, checked by nobody, and silently wrong the day either side
+changes shape.
+
+The manifest is the single result type that removes those adapters. An
+emitter fills it in once and every consumer reads the same properties in the
+same places, whatever produced them. Three properties of the type do the real
+work.
+
+It is **versioned**, so a consumer can say which schema it understands and
+refuse anything else. It is **hashed**, so a consumer can tell whether the
+payload it is holding is the payload the emitter sealed. And it is
+**provenance-tracked**, so an approximation cannot quietly lose the identity
+of the thing it approximated.
+
+## The class
+
+```{r class}
+params <- data.frame(a = c(0.12, 0.15), b = c(1.51, 1.44))
+
+m <- orchestra_manifest(
+  emitter_package    = "example",
+  emitter_version    = "0.1.0",
+  inferential_target = "parameters",
+  run_id             = "example-001",
+  method             = "example:demo",
+  seed               = 7L,
+  params             = params,
+  timestamp          = as.POSIXct("2026-07-05 09:00:00", tz = "UTC"),
+  data_hash          = manifest_data_hash(params, NULL, NULL, NULL, 7L)
+)
+
+m@emitter_package
+m@manifest_version
+```
+
+The properties fall into four groups. Identity says what this is and what made
+it. Semantics says what it is about, drawn from a closed vocabulary a consumer
+can dispatch on before it inspects any payload.
+
+```{r targets}
+inferential_targets()
+```
+
+Payload carries the load-bearing content -- `params`, `outputs`, `weights`,
+`obs_target`, `summary` and `seed` -- and is exactly the set the hash covers.
+Provenance records what the result was derived from.
+
+## Emit, verify, consume
+
+The hash is taken over the payload only. Schema version, emitter identity and
+timestamp are metadata, so re-tagging a manifest leaves an unchanged payload
+verifying, while any edit to the payload is caught.
+
+```{r verify}
+verify_manifest(m)$ok
+
+m@emitter_package <- "relabelled"
+verify_manifest(m)$ok
+```
+
+Tampering with the payload is a different matter.
+
+```{r tamper}
+tampered <- m
+tampered@params$a[1] <- 0.99
+
+verify_manifest(tampered)
+```
+
+`verify_manifest()` returns its verdict as data because a consumer often wants
+to record a failure and carry on with the other lenses it has. The loud
+version is `consume_manifest()`, which is what a gate should call. It runs
+three checks -- is this a manifest, is its schema one I accept, does its
+payload still verify -- and errors on any of them.
+
+```{r consume, error = TRUE}
+consume_manifest(m)@run_id
+
+consume_manifest(tampered)
+```
+
+The version check is the one that earns its keep. Coercing silently across a
+schema boundary is how a pipeline ends up reading a slot that no longer means
+what it meant when the consumer was written, and the failure surfaces far
+downstream as a wrong number rather than as an error.
+
+```{r version, error = TRUE}
+consume_manifest(m, accept = "1.0.0")
+```
+
+## Provenance is not optional for a derived result
+
+A manifest that approximates another one records a compact handle to it. The
+handle carries the upstream `data_hash`, not just its `run_id`, so a later
+re-emission that changed the numbers cannot be passed off as the same input.
+
+```{r lineage}
+manifest_lineage(m)
+```
+
+Setting `metadata$derived` to `TRUE` turns the lineage from a convention into
+a rule the class validator enforces.
+
+```{r derived, error = TRUE}
+orchestra_manifest(
+  emitter_package    = "proxy",
+  emitter_version    = "0.1.0",
+  inferential_target = "parameters",
+  run_id             = "proxy-001",
+  method             = "proxy:demo",
+  metadata           = list(derived = TRUE),
+  timestamp          = Sys.time(),
+  data_hash          = manifest_data_hash(data.frame(), NULL, NULL, NULL,
+                                          NA_integer_)
+)
+```
+
+## A verdict is not an ensemble
+
+A causal test or a decision produces one labelled conclusion, not a matrix of
+draws. Forcing it into `params` as a single-row table leaves a consumer unable
+to tell a verdict from a degenerate posterior, so it gets a typed home of its
+own in `summary`. Because `summary` is inside the hash, a tampered verdict is
+detected exactly like a tampered payload.
+
+```{r summary}
+verdict <- manifest_summary(
+  "insufficient evidence",
+  abstained = TRUE,
+  abstain_reason = "effective sample size below the floor",
+  metrics = list(ess = 41)
+)
+
+verdict$abstained
+verdict$abstain_reason
+```
+
+## Refusals and abstentions
+
+An abstention is a result, not a failure. A component that will not stand
+behind a number should say so in a way a gate can recognise, and the problem
+is that recognition used to depend on knowing which component produced it.
+More than one component exports a predicate named `is_refusal()`, each
+recognises only its own class, and when two are attached the bare name
+resolves to whichever was attached last -- returning `FALSE` on the other
+component's genuine refusal. That is a silent false negative, and a gate that
+should have stopped sails straight through it.
+
+The contract fixes this with a naming convention plus a pair of
+producer-agnostic predicates. A structured refusal has a class ending in
+`_refusal` and a structured abstention a class ending in `_abstention`, which
+holds across object systems because the class vector of an S3 refusal and of
+an S7 one both end that way.
+
+```{r refusal}
+s3_refusal <- structure(list(why = "no data"), class = "example_refusal")
+s7_refusal <- structure(list(),
+                        class = c("example::example_refusal", "S7_object"))
+abstention <- structure(list(), class = "example_abstention")
+
+c(is_orchestra_refusal(s3_refusal), is_orchestra_refusal(s7_refusal))
+```
+
+Gate logic almost always wants the wider union, because a refusal and an
+abstention mean the same thing to a gate.
+
+```{r decline}
+vapply(list(s3_refusal, s7_refusal, abstention, 42),
+       is_orchestra_decline, logical(1))
+```
+
+Seam-side code that mints a refusal of its own has no component name to follow
+the convention with, so it stamps the explicit marker instead. The stamp is
+idempotent, and a refusal can therefore pass through several layers without
+accumulating duplicate classes.
+
+```{r marker}
+r <- as_orchestra_refusal(structure(list(why = "capital firewall"),
+                                    class = "list"))
+class(r)
+identical(as_orchestra_refusal(r), r)
+```
+
+## Grounding tokens
+
+The grounding vocabulary is orthogonal to the refusal contract: a token says
+how well a fact is evidenced, a refusal says what happened to the control
+flow. A fact is grounded only when its verification date is present.
+
+```{r tokens}
+grounding_token(as.Date(c("2026-07-05", "2026-07-06")))
+grounding_token(as.Date(c("2026-07-05", NA)))
+grounding_token(as.Date(character(0)))
+```
+
+The asymmetry is the point. An empty evidence set is not neutral, it is the
+absence of evidence, and a partially checked set is not partially trustworthy
+because the consumer cannot tell which element it may lean on. Both collapse
+to `[unverified]` so a downstream gate errs towards abstention. Combining
+tokens follows the same rule, worst-case across the inputs.
+
+```{r combine}
+combine_grounding(c(GROUNDING_GROUNDED, GROUNDING_GROUNDED))
+combine_grounding(c(GROUNDING_GROUNDED, GROUNDING_UNVERIFIED))
+```
+
+Any other rule -- a majority, a mean, an optimistic "at least one" -- would
+let a verdict inherit confidence from its checked inputs while quietly resting
+on an unchecked one.
+
+## Comparing two manifests honestly
+
+A purely structural conformance check cannot catch a wrong-but-agreed
+convention. Two components that both label a column `o1` will compare happily
+even when one means tonnes per hectare and the other kilograms per hectare,
+and the resulting number is wrong by a factor nobody downstream can recover.
+
+The guard compares the semantic descriptors rather than the column positions,
+and refuses on a disagreement.
+
+```{r schema, error = TRUE}
+with_unit <- function(unit, run_id) {
+  orchestra_manifest(
+    emitter_package    = "example",
+    emitter_version    = "0.1.0",
+    inferential_target = "predictions",
+    run_id             = run_id,
+    method             = "example:demo",
+    obs_schema = list(outputs = data.frame(name = c("o1", "o2"),
+                                           quantity = "grain_yield",
+                                           unit = c(unit, "t/ha"))),
+    timestamp          = Sys.time(),
+    data_hash = manifest_data_hash(data.frame(), NULL, NULL, NULL,
+                                   NA_integer_)
+  )
+}
+
+assert_obs_schema_correspondence(with_unit("t/ha", "a"),
+                                 with_unit("t/ha", "b"))
+
+assert_obs_schema_correspondence(with_unit("t/ha", "a"),
+                                 with_unit("kg/ha", "b"))
+```
+
+The check is opt-in by presence: when either manifest lacks an `obs_schema` it
+is a graceful no-op, so the guard activates once both emitters populate the
+field and no existing pipeline breaks on the day it lands.
+
+## Adapting a component
+
+A component joins the contract by being adapted, not by being rewritten. It
+keeps its own result type and a method on `as_orchestra_manifest()` lifts that
+type into a manifest. Two adapters ship here, for a `PESTO` ensemble manifest
+and a `proxymix` mixture fit, and each is registered at load time only when
+its component is installed.
+
+```{r adapter, eval = requireNamespace("proxymix", quietly = TRUE)}
+set.seed(1)
+draws <- matrix(stats::rnorm(200), 100, 2, dimnames = list(NULL, c("a", "b")))
+fit <- proxymix::fit_proxymix(proxymix::gmm_target_from_samples(draws),
+                              N = 2L, regime = "sample", max_iter = 50L)
+
+proxy <- manifest_from_gmm(fit, seed = 1L, consumed = list(m))
+
+proxy@emitter_package
+proxy@metadata$derived
+proxy@consumed_manifests[[1]]$run_id
+verify_manifest(proxy)$ok
+```
+
+## Two class identities, one contract
+
+The contract was a script sourced into a coordination workspace before it was
+a package. A manifest minted by that reference carries the bare class name,
+one minted here carries the package-qualified name, and a component that
+implements the contract without depending on this package mints the bare form
+too.
+
+```{r identity}
+class(m)
+is_orchestra_manifest(m)
+```
+
+They are the same contract, so identity is tested on the class name -- the
+part the contract actually fixes -- rather than with a strict class check that
+would reject every manifest emitted anywhere else. The package's test suite
+includes a cross-implementation oracle for exactly this: it builds a manifest
+under the reference implementation in a separate R session, hashes the same
+payload under both implementations, and requires the two strings to be
+identical. An extraction that quietly changed the digest would pass every
+self-consistent test in the suite and fail that one.
