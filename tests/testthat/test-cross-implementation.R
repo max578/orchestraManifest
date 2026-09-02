@@ -125,11 +125,10 @@ test_that("a manifest built by this package hashes identically under the referen
   # Byte-level agreement in the other direction.
   expect_identical(reference_view$hash, m@data_hash)
 
-  # The reference tests identity strictly, so it declines a manifest minted
-  # under the package-qualified class even though the payload is intact.
-  # That asymmetry is the whole reason this package tests identity
-  # tolerantly; recording it here keeps it a known property rather than a
-  # surprise the next time a component is extracted.
-  expect_false(reference_view$strict$ok)
-  expect_identical(reference_view$strict$message, "not an orchestra_manifest")
+  # Since 2026-09-02 the reference tests identity tolerantly (it was patched
+  # when this package was extracted), so a manifest minted under the
+  # package-qualified class verifies there too. Recording the round trip in
+  # both directions keeps the contract symmetric on the record.
+  expect_true(reference_view$strict$ok)
+  expect_identical(reference_view$strict$message, "data_hash verified")
 })
