@@ -8,13 +8,14 @@
 # extraction preserved the contract; if they disagree, every manifest already
 # in circulation stops verifying.
 #
-# The reference is a working file on one machine, not a dependency, so the
-# path below is absolute. It is the single sanctioned absolute path in this
-# package: the test skips on CRAN and skips wherever the file is absent, which
-# is everywhere except the machine that holds the reference.
+# The reference is a working file on one machine, not a dependency. Its
+# location is supplied by the environment variable ORCHESTRA_LEADER_WORKSPACE
+# (the leader workspace root); the test skips on CRAN and skips wherever the
+# variable is unset or the file is absent, which is everywhere except the
+# machine that holds the reference.
 
 reference_implementation <- file.path(
-  "/Users/a1222812/Projects/CLAUDE_PROJECTS_LOCAL/ORCHESTRA_dev",
+  Sys.getenv("ORCHESTRA_LEADER_WORKSPACE", ""),
   "integration", "orchestra_manifest.R"
 )
 
