@@ -21,13 +21,15 @@
 # `breeding_values` (genomic estimated breeding values) and
 # `marker_associations` (marker effects from an association scan) were added
 # 2026-06-11; `structure` (a recovered causal or graphical-model edge set, as
-# opposed to a parameter vector or a prediction) was added 2026-06-24. Both
-# additions are purely additive -- existing targets are unchanged and existing
-# manifests stay valid -- so neither bumped the contract version.
+# opposed to a parameter vector or a prediction) was added 2026-06-24;
+# `consensus` (a cross-method or cross-model agreement verdict, as emitted by
+# `quorum`, the consensus layer) was added 2026-09-02. All three additions are
+# purely additive -- existing targets are unchanged and existing manifests
+# stay valid -- so none of them bumped the contract version.
 .INFERENTIAL_TARGETS <- c("parameters", "predictions",
                           "treatment_effects", "decisions",
                           "breeding_values", "marker_associations",
-                          "structure")
+                          "structure", "consensus")
 
 #' Default value operator
 #'

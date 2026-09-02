@@ -62,6 +62,16 @@ test_that("a serialisation round trip preserves the object and its integrity", {
   expect_identical(rt@data_hash, m@data_hash)
 })
 
+test_that("a consensus manifest round-trips through serialisation and verifies", {
+  m <- new_test_manifest(inferential_target = "consensus",
+                         summary = manifest_summary("consensus reached"))
+  rt <- unserialize(serialize(m, NULL))
+  expect_true(is_orchestra_manifest(rt))
+  expect_identical(rt@inferential_target, "consensus")
+  expect_true(verify_manifest(rt)$ok)
+  expect_identical(rt@data_hash, m@data_hash)
+})
+
 test_that("a consumer accepts a known-valid manifest", {
   m <- new_test_manifest()
   expect_identical(consume_manifest(m), m)

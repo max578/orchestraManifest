@@ -1,3 +1,8 @@
+# orchestraManifest (development version)
+
+* Additive inferential-target token `consensus` (emitted by quorum, the
+  consensus layer); the workspace reference carries the same token.
+
 # orchestraManifest 0.1.0
 
 ## New features

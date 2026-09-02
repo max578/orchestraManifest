@@ -69,6 +69,12 @@ test_that("the permitted inferential targets are the closed set", {
   expect_identical(
     inferential_targets(),
     c("parameters", "predictions", "treatment_effects", "decisions",
-      "breeding_values", "marker_associations", "structure")
+      "breeding_values", "marker_associations", "structure", "consensus")
   )
+})
+
+test_that("a manifest may declare the consensus inferential target", {
+  m <- new_test_manifest(inferential_target = "consensus")
+  expect_identical(m@inferential_target, "consensus")
+  expect_true(verify_manifest(m)$ok)
 })
