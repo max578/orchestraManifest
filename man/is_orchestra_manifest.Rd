@@ -37,7 +37,7 @@ m <- orchestra_manifest(
   run_id = "example-001",
   method = "example:demo",
   timestamp = Sys.time(),
-  data_hash = "sha256:placeholder"
+  data_hash = "sha256:example"
 )
 is_orchestra_manifest(m)
 is_orchestra_manifest(list(a = 1))

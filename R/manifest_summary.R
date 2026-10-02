@@ -1,6 +1,6 @@
 # manifest_summary.R -- The typed home for a non-ensemble result's headline.
 #
-# A causal verdict or a decision has no honest values for the ensemble payload
+# A causal verdict or a decision has no meaningful values for the ensemble payload
 # slots, and forcing it into `params` as a single-row pseudo-parameter table
 # makes it unreadable to any consumer that expects draws there. This gives it
 # a small, validated, integrity-hashed home of its own.

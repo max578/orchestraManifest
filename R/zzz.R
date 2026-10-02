@@ -13,8 +13,8 @@
 #' Runs at namespace load. For each suggested component that is installed, the
 #' matching adapter body is registered as a method on
 #' [as_orchestra_manifest()]. A missing component leaves the generic without
-#' that method, which is the honest state: the named function
-#' [manifest_from_pesto()] or [manifest_from_gmm()] then refuses with a
+#' that method. The named functions
+#' [manifest_from_pesto()] and [manifest_from_gmm()] then refuse with a
 #' message that says which component is missing.
 #'
 #' @param libname The library where the package is installed.

@@ -62,7 +62,7 @@
 #' @param seed The integer RNG seed behind the result, or `NA_integer_` when
 #'   the result is deterministic or the seed is unknown.
 #' @param params A data frame of parameter draws, one row per realisation.
-#'   Defaults to an empty data frame, which is the honest value for a verdict
+#'   Defaults to an empty data frame, which suits a verdict
 #'   manifest that carries its content in `summary`.
 #' @param outputs Model-predicted outputs at each parameter draw, or `NULL`
 #'   when the manifest carries no ensemble payload.
@@ -201,7 +201,7 @@ orchestra_manifest <- S7::new_class(
 #'   run_id = "example-001",
 #'   method = "example:demo",
 #'   timestamp = Sys.time(),
-#'   data_hash = "sha256:placeholder"
+#'   data_hash = "sha256:example"
 #' )
 #' is_orchestra_manifest(m)
 #' is_orchestra_manifest(list(a = 1))

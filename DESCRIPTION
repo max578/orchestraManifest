@@ -23,6 +23,8 @@ Description: A versioned, integrity-hashed and provenance-tracked 'S7'
     Adapters lift a 'PESTO' ensemble manifest and a 'proxymix' Gaussian
     mixture fit into the contract.
 License: MIT + file LICENSE
+URL: https://github.com/max578/orchestraManifest
+BugReports: https://github.com/max578/orchestraManifest/issues
 Encoding: UTF-8
 Language: en-AU
 Roxygen: list(markdown = TRUE)
@@ -42,4 +44,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
+Remotes:
+    max578/PESTO,
+    max578/proxymix
 Config/roxygen2/version: 8.1.0

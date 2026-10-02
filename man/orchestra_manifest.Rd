@@ -49,7 +49,7 @@ conventionally qualified by its component, as in \code{"PESTO:ies_callback"}.}
 the result is deterministic or the seed is unknown.}
 
 \item{params}{A data frame of parameter draws, one row per realisation.
-Defaults to an empty data frame, which is the honest value for a verdict
+Defaults to an empty data frame, which suits a verdict
 manifest that carries its content in \code{summary}.}
 
 \item{outputs}{Model-predicted outputs at each parameter draw, or \code{NULL}

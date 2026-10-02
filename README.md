@@ -27,7 +27,7 @@ to whichever component was attached last.
 
 ``` r
 # install.packages("remotes")
-remotes::install_local("orchestraManifest")
+remotes::install_github("max578/orchestraManifest")
 ```
 
 ## A worked example
