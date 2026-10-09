@@ -1,4 +1,9 @@
-# orchestraManifest (development version)
+# orchestraManifest 0.2.0
+
+* `GROUNDING_UNVERIFIED` is now `"ungrounded"`; `combine_grounding()` still
+  reads the token emitted up to 0.1.0 as not grounded.
+
+* Added a `CITATION` file.
 
 * Additive inferential-target token `consensus` (emitted by quorum, the
   consensus layer); the workspace reference carries the same token.
