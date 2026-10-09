@@ -22,6 +22,14 @@ resting on an unverified fact is labelled as such. The refusal contract
 component's structured refusal or abstention without enumerating component
 classes.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/max578/orchestraManifest}
+  \item Report bugs at \url{https://github.com/max578/orchestraManifest/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Max Moldovan \email{max.moldovan@adelaide.edu.au} (\href{https://orcid.org/0000-0001-9680-8474}{ORCID}) [copyright holder]
 
