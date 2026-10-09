@@ -8,8 +8,9 @@ combine_grounding(tokens)
 }
 \arguments{
 \item{tokens}{A character vector of grounding tokens, each of which should
-be \link{GROUNDING_GROUNDED} or \link{GROUNDING_UNVERIFIED}. An unrecognised string
-is treated as not-grounded, which is the safe reading. A zero-length
+be \link{GROUNDING_GROUNDED} or \link{GROUNDING_UNVERIFIED}. The token emitted up to
+0.1.0 and any unrecognised string are treated as not grounded, which is
+the safe reading. A zero-length
 vector is valid and means "the verdict rests on nothing checked".}
 }
 \value{

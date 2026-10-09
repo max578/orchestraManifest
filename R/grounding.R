@@ -31,13 +31,16 @@ GROUNDING_GROUNDED <- "grounded"
 #' is the safe default: a fact is unverified until something grounds it, never
 #' the other way round.
 #'
+#' The value is `"ungrounded"`. [combine_grounding()] also reads the token
+#' that releases up to 0.1.0 emitted as not grounded.
+#'
 #' @format A length-1 character vector.
 #'
 #' @seealso [GROUNDING_GROUNDED] for its complement, [combine_grounding] for
 #'   how one unverified input taints a set.
 #'
 #' @export
-GROUNDING_UNVERIFIED <- "[unverified]"
+GROUNDING_UNVERIFIED <- "ungrounded"
 
 #' Mint a grounding token for a set of facts
 #'
@@ -93,8 +96,9 @@ grounding_token <- function(verified_on) {
 #' vacuously grounded.
 #'
 #' @param tokens A character vector of grounding tokens, each of which should
-#'   be [GROUNDING_GROUNDED] or [GROUNDING_UNVERIFIED]. An unrecognised string
-#'   is treated as not-grounded, which is the safe reading. A zero-length
+#'   be [GROUNDING_GROUNDED] or [GROUNDING_UNVERIFIED]. The token emitted up to
+#'   0.1.0 and any unrecognised string are treated as not grounded, which is
+#'   the safe reading. A zero-length
 #'   vector is valid and means "the verdict rests on nothing checked".
 #'
 #' @returns A length-1 character vector: [GROUNDING_GROUNDED] when every token

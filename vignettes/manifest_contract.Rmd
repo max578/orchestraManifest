@@ -336,7 +336,7 @@ g_empty
 The asymmetry is the point. An empty evidence set is not neutral, it is the
 absence of evidence, and a partially checked set is not partially trustworthy
 because the consumer cannot tell which element it may lean on. Both collapse
-to `` `[unverified]` `` so a downstream gate errs towards abstention. Combining
+to `` `ungrounded` `` so a downstream gate errs towards abstention. Combining
 tokens follows the same rule, worst-case across the inputs.
 
 ```{r combine}

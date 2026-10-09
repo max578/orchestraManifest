@@ -1,6 +1,6 @@
 test_that("the canonical tokens are the exact strings components hardcode", {
   expect_identical(GROUNDING_GROUNDED, "grounded")
-  expect_identical(GROUNDING_UNVERIFIED, "[unverified]")
+  expect_identical(GROUNDING_UNVERIFIED, "ungrounded")
 })
 
 test_that("a fully dated evidence set is grounded", {
@@ -35,5 +35,10 @@ test_that("combining tokens is worst-case", {
 
 test_that("an unrecognised token reads as not grounded", {
   expect_identical(combine_grounding(c(GROUNDING_GROUNDED, "probably")),
+                   GROUNDING_UNVERIFIED)
+})
+
+test_that("the token used up to 0.1.0 still reads as not grounded", {
+  expect_identical(combine_grounding(c(GROUNDING_GROUNDED, "[unverified]")),
                    GROUNDING_UNVERIFIED)
 })

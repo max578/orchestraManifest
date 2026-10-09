@@ -15,6 +15,10 @@ checked, or whose evidence set contains at least one unchecked element. It
 is the safe default: a fact is unverified until something grounds it, never
 the other way round.
 }
+\details{
+The value is \code{"ungrounded"}. \code{\link[=combine_grounding]{combine_grounding()}} also reads the token
+that releases up to 0.1.0 emitted as not grounded.
+}
 \seealso{
 \link{GROUNDING_GROUNDED} for its complement, \link{combine_grounding} for
 how one unverified input taints a set.
