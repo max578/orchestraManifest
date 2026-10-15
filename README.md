@@ -1,4 +1,10 @@
-# orchestraManifest
+# orchestraManifest <img src="man/figures/logo.png" align="right" height="139" alt="orchestraManifest logo" />
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/max578/orchestraManifest/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/orchestraManifest/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/max578/orchestraManifest/graph/badge.svg)](https://app.codecov.io/gh/max578/orchestraManifest)
+[![r-universe](https://max578.r-universe.dev/badges/orchestraManifest)](https://max578.r-universe.dev/orchestraManifest)
+<!-- badges: end -->
 
 The manifest and refusal contract that lets independently developed
 crop-analytics components exchange results without knowing anything about each
@@ -22,6 +28,24 @@ structured refusal or abstention from its class alone, which closes a silent
 false negative: more than one component exports a predicate named
 `is_refusal()`, each recognises only its own class, and the bare name resolves
 to whichever component was attached last.
+
+## Related packages
+
+- [rdtLite](https://CRAN.R-project.org/package=rdtLite) collects
+  provenance while an R script or console session runs, and writes it as a
+  PROV-JSON file.
+- [vetr](https://CRAN.R-project.org/package=vetr) checks that objects
+  match a structural template and writes the error message when they do
+  not.
+- [pins](https://CRAN.R-project.org/package=pins) publishes data sets,
+  models and other R objects to boards such as a shared folder or cloud
+  storage, so they can be shared across projects.
+
+orchestraManifest works on a single result rather than a script or a
+storage location. It records which package produced the result and how,
+lets the receiving package check the result has not changed and that it
+accepts the contract version, and gives every package one way to recognise
+a refusal.
 
 ## Installation
 
