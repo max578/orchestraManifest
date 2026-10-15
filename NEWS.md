@@ -1,3 +1,9 @@
+# orchestraManifest (development version)
+
+* The package has a logo.
+* README has status badges and lists related packages.
+* CI runs lintr (report-only) and test coverage.
+
 # orchestraManifest 0.2.0
 
 * `GROUNDING_UNVERIFIED` is now `"ungrounded"`; `combine_grounding()` still
