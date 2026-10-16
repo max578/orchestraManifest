@@ -1,9 +1,11 @@
 # orchestraManifest <img src="man/figures/logo.png" align="right" height="139" alt="orchestraManifest logo" />
 
 <!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/max578/orchestraManifest/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/orchestraManifest/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/max578/orchestraManifest/graph/badge.svg)](https://app.codecov.io/gh/max578/orchestraManifest)
 [![r-universe](https://max578.r-universe.dev/badges/orchestraManifest)](https://max578.r-universe.dev/orchestraManifest)
+[![pkgdown](https://github.com/max578/orchestraManifest/actions/workflows/pkgdown.yaml/badge.svg)](https://max578.github.io/orchestraManifest/)
 <!-- badges: end -->
 
 The manifest and refusal contract that lets independently developed
