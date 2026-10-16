@@ -23,7 +23,7 @@ Description: A versioned, integrity-hashed and provenance-tracked 'S7'
     Adapters lift a 'PESTO' ensemble manifest and a 'proxymix' Gaussian
     mixture fit into the contract.
 License: MIT + file LICENSE
-URL: https://github.com/max578/orchestraManifest
+URL: https://github.com/max578/orchestraManifest, https://max578.github.io/orchestraManifest/
 BugReports: https://github.com/max578/orchestraManifest/issues
 Encoding: UTF-8
 Language: en-AU
