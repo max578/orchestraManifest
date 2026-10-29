@@ -1,0 +1,151 @@
+# orchestraManifest
+
+The manifest and refusal contract that lets independently developed
+crop-analytics components exchange results without knowing anything
+about each other beyond this package.
+
+## What it is
+
+A component’s inference result is wrapped once into an
+`orchestra_manifest`: what was inferred, which component emitted it, the
+method and seed behind it, the load-bearing payload, and the lineage of
+any upstream manifest it was derived from. A SHA-256 digest over
+version-stable serialised bytes lets any consumer check that the payload
+has not been modified since emission, and a consumer declares which
+contract versions it accepts so that schema drift fails at the seam
+rather than as a wrong number downstream.
+
+Alongside the manifest sit two smaller contracts that travel with it.
+The provenance vocabulary propagates a worst-case grounding label, so a
+verdict resting on an unverified fact is labelled unverified rather than
+asserted with false confidence. The refusal contract lets a gate
+recognise any component’s structured refusal or abstention from its
+class alone, which closes a silent false negative: more than one
+component exports a predicate named `is_refusal()`, each recognises only
+its own class, and the bare name resolves to whichever component was
+attached last.
+
+## Related packages
+
+- [rdtLite](https://CRAN.R-project.org/package=rdtLite) collects
+  provenance while an R script or console session runs, and writes it as
+  a PROV-JSON file.
+- [vetr](https://CRAN.R-project.org/package=vetr) checks that objects
+  match a structural template and writes the error message when they do
+  not.
+- [pins](https://CRAN.R-project.org/package=pins) publishes data sets,
+  models and other R objects to boards such as a shared folder or cloud
+  storage, so they can be shared across projects.
+
+orchestraManifest works on a single result rather than a script or a
+storage location. It records which package produced the result and how,
+lets the receiving package check the result has not changed and that it
+accepts the contract version, and gives every package one way to
+recognise a refusal.
+
+## Installation
+
+``` r
+
+# install.packages("remotes")
+remotes::install_github("max578/orchestraManifest")
+```
+
+## A worked example
+
+``` r
+
+library(orchestraManifest)
+
+params <- data.frame(a = c(0.12, 0.15), b = c(1.51, 1.44))
+
+m <- orchestra_manifest(
+  emitter_package    = "example",
+  emitter_version    = "0.1.0",
+  inferential_target = "parameters",
+  run_id             = "example-001",
+  method             = "example:demo",
+  seed               = 7L,
+  params             = params,
+  timestamp          = Sys.time(),
+  data_hash          = manifest_data_hash(params, NULL, NULL, NULL, 7L)
+)
+
+verify_manifest(m)$ok
+#> [1] TRUE
+
+m@params$a[1] <- 0.99
+verify_manifest(m)$ok
+#> [1] FALSE
+```
+
+## Where the contract came from
+
+The contract was a script sourced into a coordination workspace before
+it was a package, and manifests minted by that reference carry the bare
+class name `orchestra_manifest` while manifests minted here carry the
+package-qualified
+[`orchestraManifest::orchestra_manifest`](https://max578.github.io/orchestraManifest/reference/orchestra_manifest.md).
+Both are the same contract, so identity is tested with
+[`is_orchestra_manifest()`](https://max578.github.io/orchestraManifest/reference/is_orchestra_manifest.md)
+rather than a strict class check, and the package’s test suite includes
+a cross-implementation oracle that hashes the same payload under both
+implementations and requires the two strings to be identical.
+
+## Licence
+
+MIT.
+
+# Package index
+
+## All functions
+
+- [`GROUNDING_GROUNDED`](https://max578.github.io/orchestraManifest/reference/GROUNDING_GROUNDED.md)
+  : The token marking a fact as grounded
+- [`GROUNDING_UNVERIFIED`](https://max578.github.io/orchestraManifest/reference/GROUNDING_UNVERIFIED.md)
+  : The token marking a fact as unverified
+- [`ORCHESTRA_REFUSAL_CLASS`](https://max578.github.io/orchestraManifest/reference/ORCHESTRA_REFUSAL_CLASS.md)
+  : The shared refusal marker class
+- [`as_orchestra_manifest()`](https://max578.github.io/orchestraManifest/reference/as_orchestra_manifest.md)
+  : Adapt a component's result into an orchestra manifest
+- [`as_orchestra_refusal()`](https://max578.github.io/orchestraManifest/reference/as_orchestra_refusal.md)
+  : Stamp the shared refusal marker onto an object
+- [`assert_obs_schema_correspondence()`](https://max578.github.io/orchestraManifest/reference/assert_obs_schema_correspondence.md)
+  : Assert that two manifests describe the same quantities the same way
+- [`combine_grounding()`](https://max578.github.io/orchestraManifest/reference/combine_grounding.md)
+  : Combine grounding tokens worst-case
+- [`consume_manifest()`](https://max578.github.io/orchestraManifest/reference/consume_manifest.md)
+  : Consume a manifest, or refuse it loudly
+- [`grounding_token()`](https://max578.github.io/orchestraManifest/reference/grounding_token.md)
+  : Mint a grounding token for a set of facts
+- [`inferential_targets()`](https://max578.github.io/orchestraManifest/reference/inferential_targets.md)
+  : The permitted inferential targets
+- [`is_orchestra_decline()`](https://max578.github.io/orchestraManifest/reference/is_orchestra_decline.md)
+  : Did any orchestra component decline to stand behind a result?
+- [`is_orchestra_manifest()`](https://max578.github.io/orchestraManifest/reference/is_orchestra_manifest.md)
+  : Is this object an orchestra manifest?
+- [`is_orchestra_refusal()`](https://max578.github.io/orchestraManifest/reference/is_orchestra_refusal.md)
+  : Is this a refusal from any orchestra component?
+- [`manifest_data_hash()`](https://max578.github.io/orchestraManifest/reference/manifest_data_hash.md)
+  : Hash a manifest's load-bearing payload
+- [`manifest_from_gmm()`](https://max578.github.io/orchestraManifest/reference/manifest_from_gmm.md)
+  : Adapt a proxymix mixture fit
+- [`manifest_from_pesto()`](https://max578.github.io/orchestraManifest/reference/manifest_from_pesto.md)
+  : Adapt a PESTO ensemble manifest
+- [`manifest_lineage()`](https://max578.github.io/orchestraManifest/reference/manifest_lineage.md)
+  : Take a provenance handle from an upstream manifest
+- [`manifest_summary()`](https://max578.github.io/orchestraManifest/reference/manifest_summary.md)
+  : A manifest's headline verdict
+- [`manifest_version()`](https://max578.github.io/orchestraManifest/reference/manifest_version.md)
+  : The contract version this package emits and accepts
+- [`orchestra_manifest()`](https://max578.github.io/orchestraManifest/reference/orchestra_manifest.md)
+  : The orchestra manifest
+- [`verify_manifest()`](https://max578.github.io/orchestraManifest/reference/verify_manifest.md)
+  : Verify a manifest's payload against its stored hash
+
+# Articles
+
+### All vignettes
+
+- [The manifest and refusal
+  contract](https://max578.github.io/orchestraManifest/articles/manifest_contract.md):
